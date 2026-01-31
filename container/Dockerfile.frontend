@@ -1,0 +1,16 @@
+FROM node:22
+
+WORKDIR /usr/src/frontend
+
+
+COPY ./frontend/package*.json ./
+
+# 依存関係をインストール
+RUN npm install
+
+
+# 開発サーバーを起動
+CMD ["npm", "run", "dev"]
+
+# ポートの公開
+EXPOSE 3000
