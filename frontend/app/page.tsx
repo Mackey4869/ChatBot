@@ -1,65 +1,96 @@
-import Image from "next/image";
+import MobileLayout from "@/components/layout/mobile-layout";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-export default function Home() {
+export default function HomePage() {
+  // カレンダーのモックデータ (2026年2月)
+  const days = Array.from({ length: 28 }, (_, i) => i + 1);
+  const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
+
+  // 状態のモック (full: 予約いっぱい, open: 予約空き)
+  const status: { [key: number]: "full" | "open" | null } = {
+    5: "full", 12: "full", 19: "full", 26: "full", // 水曜はいっぱい
+    7: "open", 14: "open", 21: "open", 28: "open", // 金曜は空き
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <MobileLayout title="研究室スケジュール管理">
+      <div className="p-4 space-y-4">
+        {/* 検索バー */}
+        <input
+          type="text"
+          placeholder="メンバー名で検索..."
+          className="w-full p-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get11, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+
+        {/* カレンダーカード */}
+        <div className="bg-white rounded-xl shadow-sm p-4">
+          <div className="flex items-center justify-between mb-4">
+            <button className="p-2 hover:bg-gray-100 rounded-full"><ChevronLeft size={20} /></button>
+            <h2 className="text-lg font-bold">2026年 2月</h2>
+            <button className="p-2 hover:bg-gray-100 rounded-full"><ChevronRight size={20} /></button>
+          </div>
+
+          {/* 曜日ヘッダー */}
+          <div className="grid grid-cols-7 text-center mb-2 text-gray-500 text-sm">
+            {weekDays.map((day) => (
+              <div key={day}>{day}</div>
+            ))}
+          </div>
+
+          {/* 日付グリッド */}
+          <div className="grid grid-cols-7 gap-2 text-center">
+            {days.map((day) => {
+              const st = status[day];
+              let bgClass = "bg-transparent";
+              let textClass = "text-gray-700";
+
+              if (st === "full") {
+                bgClass = "bg-[#3b82f6]"; // Blue
+                textClass = "text-white";
+              } else if (st === "open") {
+                bgClass = "bg-[#10b981]"; // Green
+                textClass = "text-white";
+              }
+
+              return (
+                <div
+                  key={day}
+                  className={`aspect-square flex items-center justify-center rounded-lg text-sm font-medium ${bgClass} ${textClass}`}
+                >
+                  {day}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 凡例 */}
+          <div className="mt-6 space-y-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <span className="w-4 h-4 rounded bg-[#3b82f6]"></span>
+              <span>研究ゼミあり（予約いっぱい）</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-4 h-4 rounded bg-[#10b981]"></span>
+              <span>研究ゼミあり（予約空き）</span>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* 今月の予約状況サマリ */}
+        <div className="bg-white rounded-xl shadow-sm p-4">
+          <h3 className="font-bold mb-3">今月の予約状況</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between border-b pb-2">
+              <span>研究ゼミ（予約いっぱい）</span>
+              <span className="text-[#3b82f6] font-bold">4回</span>
+            </div>
+            <div className="flex justify-between pt-1">
+              <span>研究ゼミ（予約空き）</span>
+              <span className="text-[#10b981] font-bold">4回</span>
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </MobileLayout>
   );
 }
