@@ -3,6 +3,7 @@ CREATE TABLE public.users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('admin', 'student')),
+    password_hash TEXT,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -11,6 +12,8 @@ CREATE TABLE public.personal_pages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL UNIQUE REFERENCES public.users(id) ON DELETE CASCADE,
     password_hash TEXT,
+    content TEXT,
+    updated_at TIMESTAMPTZ DEFAULT now(),
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
