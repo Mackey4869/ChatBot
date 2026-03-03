@@ -5,7 +5,7 @@ services:
       context: '.'
       dockerfile: ./container/Dockerfile.frontend
     ports:
-      - 3000:3000
+      - "${HOST_PORT:-3000}:3000"
     volumes:
       - ./frontend:/usr/src/frontend
       - node_modules:/usr/src/frontend/node_modules # node_modules
