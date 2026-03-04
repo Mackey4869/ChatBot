@@ -59,3 +59,42 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     throw error;
   }
 }
+
+// チャット応答を生成するヘルパー
+const CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || 'gemini-2.5-flash';
+
+export async function generateChatResponse(question: string, context: string): Promise<string> {
+  const client = getGenAI();
+  const model = client.getGenerativeModel({
+    model: CHAT_MODEL,
+    generationConfig: {
+      temperature: 0.2,
+    },
+  });
+
+  const prompt = `参照情報:
+${context}
+
+ユーザーの質問:
+${question}
+
+上記の参照情報を踏まえて、日本語で簡潔に回答してください。必要なら出典を示してください。`;
+
+  try {
+    // SDK の generateContent を利用
+    const result: any = await model.generateContent(prompt);
+
+    // SDK の一般的なレスポンス取得方法に合わせてテキストを抽出
+    const response = await result.response;
+    const text = await (typeof response.text === 'function' ? response.text() : String(response));
+
+    if (!text) {
+      throw new Error('モデルからの応答が空でした。');
+    }
+
+    return String(text);
+  } catch (err) {
+    console.error('generateChatResponse error:', err);
+    throw err;
+  }
+}
