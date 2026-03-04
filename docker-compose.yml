@@ -4,6 +4,8 @@ services:
     build: 
       context: '.'
       dockerfile: ./container/Dockerfile.frontend
+    env_file:
+      - .env
     ports:
       - "${HOST_PORT:-3000}:3000"
     volumes:
