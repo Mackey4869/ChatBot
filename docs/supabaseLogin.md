@@ -111,66 +111,7 @@ await supabase.auth.signInWithOAuth({ provider: 'google' });
 
 このドキュメントに追加してほしいサンプル（例）: `httpOnly cookie` を発行する `/api/auth/login` の実装例、フロントの React フック例などが必要なら次に作成します。
 
-## 管理者ログイン (role = 'admin') の仕様と使い方
+<!-- 管理者関連の詳細は docs/adminAPI.md に移動しました -->
 
-このプロジェクトでは `public.users` テーブルに `role` カラムを持たせ、RLS（行レベルセキュリティ）やトリガーでユーザーのプロビジョニングを行っています。管理者機能は以下のように実現できます。
-
-1) 概要
-- 管理者判定は `public.users.role === 'admin'` で行います。
-- フロントでの「管理者UI表示」はクライアント側で判定できますが、実際の権限チェック（管理操作の可否）は必ずサーバー／DB 側（RLS ポリシーやサーバー検証）で行ってください。
-
-2) 管理者ユーザーの作り方（API不要で可能）
-- 開発・メンテナンス時に手動で付与する（Supabase SQL エディタまたは psql）:
-
-```sql
-UPDATE public.users
-SET role = 'admin'
-WHERE id = '<対象ユーザーの UUID>';
-```
-
-- Supabase ダッシュボードのテーブルエディタから `public.users` の該当行を編集して `role` を `admin` に変更することでも可能です。
-
-3) フロントでの判定例（API を新設しなくても可能）
-
-```javascript
-// サインイン後に自分の role を確認して管理UIを表示
-const { data: userResp } = await supabase.auth.getUser();
-const userId = userResp?.data?.user?.id;
-const { data: row, error } = await supabase
-	.from('users')
-	.select('role')
-	.eq('id', userId)
-	.single();
-if (error) {
-	// エラー処理（権限が見えない場合など）
-}
-const isAdmin = row?.role === 'admin';
-// isAdmin に応じて管理者用UIを表示
-```
-
-注意: このクエリがフロントで成功するのは、RLS ポリシーが SELECT を認めている場合に限られます（本リポジトリの migration ではログインユーザーに対して閲覧許可が設定されています）。
-
-4) サーバー側での安全な検証（必須）
-- 実際の管理操作（例: 他ユーザーの削除、ロール変更、機密データへのアクセス）は、必ずサーバー（または DB の RLS）で「現在のユーザーが admin か」を検証してから実行してください。例:
-
-```ts
-const supabase = createClient(); // サーバー側でサービスロールキーを使用
-const { data: { user } } = await supabase.auth.getUser();
-const { data: row } = await supabase.from('users').select('role').eq('id', user.id).single();
-if (row?.role !== 'admin') {
-	throw new Error('admin only');
-}
-// 管理処理を実行
-```
-
-5) 管理者付与ワークフローの推奨
-- 本番では以下いずれかの方法を推奨します:
-	- 管理者付与は管理者専用の管理画面（サーバー経由）から行い、操作ログを残す。
-	- バッチや SQL で直接付与する場合も、操作は監査ログに記録する。
-
-6) セキュリティ注意
-- `SUPABASE_SERVICE_ROLE_KEY` は絶対にクライアントへ渡さない。管理操作をクライアントから直接実行させない。
-- クライアント側で `isAdmin` を偽装して見た目だけ管理UIを表示しても、サーバーでの検証がなければ意味がありません。必ずサーバー／DB 側で権限チェックを実施してください。
-
-この追記に基づき、管理者付与を自動化する API や監査ログのサンプルが必要であれば作成します。
+管理者の運用方法・API 仕様は `docs/adminAPI.md` を参照してください。
 
