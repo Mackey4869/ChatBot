@@ -49,6 +49,8 @@
 - Supabase 関連:
 	- `SUPABASE_PROJECT_ID`（推奨）または `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_URL`
 	- `SUPABASE_SERVICE_ROLE_KEY`（サーバー側で DB 操作や RPC を使う場合はサービスロールキーを推奨）
+
+注意: サーバー側コードでは `frontend/lib/supabase.server.ts` を使用してください。`frontend/lib/supabase.ts` はブラウザ向けで `NEXT_PUBLIC_` 環境変数のみ参照します。
 	- 代替: `NEXT_PUBLIC_SUPABASE_ANON_KEY` や `SUPABASE_ACCESS_TOKEN`
 
 ## テスト方法（curl / Thunder Client）

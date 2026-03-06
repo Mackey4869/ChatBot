@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import createServerClient from '@/lib/supabase.server';
 import { generateEmbedding, generateChatResponse } from '@/lib/ai';
 
-const supabaseServer = createClient();
+const supabaseServer = createServerClient();
 
 /**
  * RAGチャットAPI

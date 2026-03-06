@@ -4,8 +4,9 @@ services:
     build: 
       context: '.'
       dockerfile: ./container/Dockerfile.frontend
+    # frontend はフロント専用の .env を参照する（ルートの .env はサーバ用に残す）
     env_file:
-      - .env
+      - ./frontend/.env
     ports:
       - "${HOST_PORT:-3000}:3000"
     volumes:
