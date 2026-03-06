@@ -1,8 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createClient } from "../lib/supabase";
-import type { Session, User } from "@supabase/supabase-js";
+import type { Session, User, SupabaseClient } from "@supabase/supabase-js";
 
 type AuthContextValue = {
   session: Session | null;
@@ -26,14 +26,24 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [signingOut, setSigningOut] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  const supabase = createClient();
+  const supabaseRef = useRef<SupabaseClient | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
+    if (!supabaseRef.current) {
+      try {
+        supabaseRef.current = createClient();
+      } catch (err) {
+        if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_SUPABASE_DEBUG === "true") {
+          console.warn("Supabase client init failed:", err);
+        }
+      }
+    }
+
     (async () => {
       try {
-        const s = await supabase.auth.getSession();
+        const s = await supabaseRef.current?.auth.getSession();
         if (!mounted) return;
         const sess = s?.data?.session || null;
         setSession(sess);
@@ -47,13 +57,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       }
     })();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event, sess) => {
-      // supabase v2 onAuthStateChange callback provides `event` and `session` (Session | null)
+    const { data: sub } = supabaseRef.current?.auth.onAuthStateChange((event, sess) => {
       const current = (sess as any) || null;
       setSession(current);
       setUser((current as any)?.user || null);
 
-      // mark initialized when initial session delivered
       if (!initialized && event === "INITIAL_SESSION") {
         setInitialized(true);
       }
@@ -71,18 +79,19 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           console.debug("auth event:", event);
         }
       }
-    });
+    }) || { subscription: undefined };
 
     return () => {
       mounted = false;
-      sub?.subscription?.unsubscribe?.();
+      sub.subscription?.unsubscribe?.();
     };
-  }, [supabase]);
+  }, []);
 
   const signOut = async () => {
     setSigningOut(true);
     try {
-      await supabase.auth.signOut();
+      const client = supabaseRef.current || createClient();
+      await client.auth.signOut();
     } finally {
       setSigningOut(false);
     }

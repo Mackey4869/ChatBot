@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import createServerClient from '@/lib/supabase.server';
 
 // 管理者向け API
 // - GET: 現在のユーザーの role を返す。クエリ `?list=true` を付けると管理者一覧を返す（自身が admin の場合のみ）。
@@ -13,7 +13,7 @@ async function getUserFromToken(supabase: any, token?: string | null) {
 
 export async function GET(req: Request) {
   try {
-    const supabase = createClient(); // SERVER: uses SERVICE_ROLE_KEY per lib/supabase.ts
+    const supabase = createServerClient();
 
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader || null;
@@ -61,7 +61,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const supabase = createClient();
+    const supabase = createServerClient();
 
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader || null;
@@ -110,7 +110,7 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     // DELETE は targetUserId を body で受け取り、管理者権限の剥奪を行う（revoke）
-    const supabase = createClient();
+    const supabase = createServerClient();
 
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader || null;

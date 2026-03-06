@@ -35,6 +35,8 @@
 - Embedding（Gemini）:
   - `GEMINI_API_KEY`
 
+注意: サーバー側の実装は `frontend/lib/supabase.server.ts` を使ってください。フロントエンド用の `frontend/lib/supabase.ts` はブラウザ専用で `NEXT_PUBLIC_` プレフィックスのキーのみを参照します。
+
 > 注意: サーバー側で DB 書き込みを行うためにはサービスロール権限が必要な場合があります。`
 
 ## チャンク化の仕様（現状）

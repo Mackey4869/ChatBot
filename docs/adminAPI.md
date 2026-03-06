@@ -1,11 +1,9 @@
 # Admin API 仕様　(現在保留中！！)
 
 このドキュメントは、サーバー側の管理者関連 API (`/api/admin`) の仕様、利用方法、テスト手順をまとめたものです。
+注意: サーバー側で Supabase クライアントを使う場合は `frontend/lib/supabase.server.ts` を利用してください。クライアント用の `frontend/lib/supabase.ts` はブラウザ専用です。
 
 概要
-- 管理者判定は `public.users` テーブルの `role` カラムを参照します（`'admin'` が管理者）。
-- サーバー側 API は必ずクライアントから送られてきたユーザー用 `access_token` を検証し、DB上の `role` を確認してから管理操作を実行します。
-- 実装ファイル: `frontend/app/api/admin/route.ts`
 
 エンドポイント一覧
 

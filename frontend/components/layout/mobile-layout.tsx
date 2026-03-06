@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { BookOpen, Mic, MessageCircle, LogOut } from "lucide-react";
@@ -17,7 +17,19 @@ export default function MobileLayout({
   const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const supabase = createClient();
+  const supabaseRef = useRef<any | null>(null);
+
+  useEffect(() => {
+    if (!supabaseRef.current) {
+      try {
+        supabaseRef.current = createClient();
+      } catch (err) {
+        if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_SUPABASE_DEBUG === "true") {
+          console.warn("Supabase client init failed:", err);
+        }
+      }
+    }
+  }, []);
 
   // ナビゲーション設定 (Homeは削除)
   const navItems = [
@@ -29,7 +41,8 @@ export default function MobileLayout({
   const confirmLogout = async () => {
     try {
       setIsSigningOut(true);
-      await supabase.auth.signOut();
+      const client = supabaseRef.current || createClient();
+      await client.auth.signOut();
       router.replace("/Login");
     } catch (err) {
       if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_SUPABASE_DEBUG === "true") {

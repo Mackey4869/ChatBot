@@ -1,14 +1,14 @@
 // チャンク生成&DB登録
 // 記事受信 → チャンク化 → embedding → Supabase保存
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase'; // クライアント作成済みの想定
+import createServerClient from '@/lib/supabase.server'; // サーバー専用クライアント
 import { generateEmbedding } from '@/lib/ai';
 import { splitText } from '@/utils/textSplit';
 
 export async function POST(req: Request) {
   try {
     const { title, content, category_id, author_id } = await req.json();
-    const supabase = createClient();
+    const supabase = createServerClient();
 
     // 1. ブログ本記事を保存
     const { data: blog, error: blogError } = await supabase

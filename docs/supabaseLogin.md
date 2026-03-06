@@ -7,7 +7,7 @@
 基本事項
 - フロントでは公開可能な ANON キー（`NEXT_PUBLIC_SUPABASE_ANON_KEY` 等）を使ってクライアントを作成します。
 - サーバー側で管理操作や RPC を呼ぶ場合はサービスロールキー（`SUPABASE_SERVICE_ROLE_KEY`）をサーバー限定で使うようにしてください。
-- サーバー実装の参考: [frontend/lib/supabase.ts](frontend/lib/supabase.ts)
+- サーバー実装の参考: [frontend/lib/supabase.server.ts](frontend/lib/supabase.server.ts)
 
 セットアップ（簡易）
 
@@ -102,7 +102,9 @@ await supabase.auth.signInWithOAuth({ provider: 'google' });
 - 3) サーバー (`/api/session`) が受け取り、token を検証して httpOnly cookie をセットする。
 
 関連ファイル
-- サーバー用 Supabase クライアント: [frontend/lib/supabase.ts](frontend/lib/supabase.ts)
+- サーバー用 Supabase クライアント: [frontend/lib/supabase.server.ts](frontend/lib/supabase.server.ts)
+
+クライアント側の Supabase クライアントは `frontend/lib/supabase.ts`（ブラウザ用、`NEXT_PUBLIC_` キーのみ使用）です。サーバー側で管理操作や RPC を呼ぶ場合は `frontend/lib/supabase.server.ts` を利用してください。
 - RLS / ユーザープロビジョニング: [supabase/migrations/20260222064603_setup_triggers_and_rls.sql](supabase/migrations/20260222064603_setup_triggers_and_rls.sql)
 
 トラブルシュート（よくある問題）
