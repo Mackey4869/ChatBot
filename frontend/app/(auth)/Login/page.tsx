@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { createClient } from "../../../lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,17 +12,33 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // ログイン処理（モック）
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMsg(null);
 
-    // 通信しているフリ（1秒待機）
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    // ホーム画面へ遷移
-    router.push("/");
+      if (error) {
+        setErrorMsg(error.message || "ログインに失敗しました");
+        return;
+      }
+
+      // サインイン成功（モックの遷移先はホーム）
+      router.push("/");
+    } catch (err: any) {
+      setErrorMsg(err?.message || String(err));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -111,6 +128,9 @@ export default function LoginPage() {
             </>
           )}
         </button>
+        {errorMsg ? (
+          <p className="text-sm text-red-600 mt-2">{errorMsg}</p>
+        ) : null}
       </form>
 
       {/* 新規登録リンク */}
