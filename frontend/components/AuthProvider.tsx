@@ -9,6 +9,7 @@ type AuthContextValue = {
   user: User | null;
   signingOut: boolean;
   signOut: () => Promise<void>;
+  initialized: boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -23,6 +24,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   const supabase = createClient();
 
@@ -37,19 +39,25 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         setSession(sess);
         setUser(sess?.user || null);
       } catch (err) {
-        // ログは開発時のみ出す
-        if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+        if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_SUPABASE_DEBUG === "true") {
           console.warn("getSession error", err);
         }
+      } finally {
+        if (mounted) setInitialized(true);
       }
     })();
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, sess) => {
-      const current = sess?.session || null;
+      // supabase v2 onAuthStateChange callback provides `event` and `session` (Session | null)
+      const current = (sess as any) || null;
       setSession(current);
-      setUser(current?.user || null);
+      setUser((current as any)?.user || null);
 
-      // ログ出力は明示的なデバッグフラグが有効な場合のみ行う
+      // mark initialized when initial session delivered
+      if (!initialized && event === "INITIAL_SESSION") {
+        setInitialized(true);
+      }
+
       if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_SUPABASE_DEBUG === "true") {
         if (event === "SIGNED_IN") {
           console.info("loginしました");
@@ -81,7 +89,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, signingOut, signOut }}>
+    <AuthContext.Provider value={{ session, user, signingOut, signOut, initialized }}>
       {children}
     </AuthContext.Provider>
   );
