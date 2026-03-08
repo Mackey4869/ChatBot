@@ -4,6 +4,7 @@
 このドキュメントは、フロントエンド内で実装されている以下のAPIの仕様を示します。
 
 - `GET /api/blogs` — ブログ一覧取得 / 単一ブログ取得（実装: `frontend/app/api/blogs/route.ts`）
+- `DELETE /api/blogs` — ブログの削除（管理者限定）（実装: `frontend/app/api/blogs/route.ts`）
 - `PUT /api/ingest` — 既存ブログの更新（チャンク再生成・埋め込み再登録）（実装: `frontend/app/api/ingest/route.ts`）
 
 ---
@@ -34,6 +35,26 @@
 ### 補足
 - 取得時は `author`（usersのid,name）と `category`（blog_categoriesのid,name）を含める。
 - 管理者判定には Authorization ヘッダのトークンを `supabase.auth.getUser` で取得し、`users` テーブルの `role` を参照する。
+
+---
+
+## DELETE /api/blogs
+- メソッド: `DELETE`
+- パス: `/api/blogs`
+- 用途: ブログ記事の削除。関連する `blog_sections` もカスケード削除される。管理者権限が必要。
+
+### クエリパラメータ
+- `id` (uuid) — 削除するブログのID。
+
+### ヘッダー
+- `Authorization: Bearer <ADMIN_TOKEN>` — `users.role === 'admin'` が必要。
+
+### レスポンス
+- 成功: `{ "success": true, "message": "Blog deleted successfully" }`
+- 400: `id` が未指定の場合 `{ "error": "Blog ID is required" }`
+- 401: 認証エラー
+- 403: 権限エラー (管理者以外)
+- 500: 内部エラー時
 
 ---
 
@@ -86,6 +107,11 @@ curl "http://localhost:3000/api/blogs?limit=10&offset=0"
 ```
 curl "http://localhost:3000/api/blogs?id=<uuid>"
 ```
+- DELETE (削除):
+```
+curl -X DELETE "http://localhost:3000/api/blogs?id=<uuid>" \
+  -H "Authorization: Bearer <ADMIN_TOKEN>"
+```
 - PUT (更新):
 ```
 curl -X PUT "http://localhost:3000/api/ingest" \
@@ -96,4 +122,3 @@ curl -X PUT "http://localhost:3000/api/ingest" \
 ---
 
 ファイル実装: `frontend/app/api/blogs/route.ts`, `frontend/app/api/ingest/route.ts` を参照。
-

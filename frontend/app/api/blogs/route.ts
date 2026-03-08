@@ -91,3 +91,62 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
 }
+
+/**
+ * DELETE: ブログを削除する API (管理者限定)
+ * 
+ * クエリパラメータ:
+ * - id: 削除するブログのID (uuid)
+ */
+export async function DELETE(req: Request) {
+  try {
+    const supabase = createServerClient();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Blog ID is required' }, { status: 400 });
+    }
+
+    // 認証情報の取得
+    const authHeader = req.headers.get('authorization') || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader || null;
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
+    }
+
+    // 権限確認 (adminロールのみ許可)
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+    }
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (userData?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
+
+    // ブログの削除 (blog_sections は ON DELETE CASCADE により自動削除される)
+    const { error: deleteError } = await supabase
+      .from('blogs')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('Blog deletion error:', deleteError);
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Blog deleted successfully' });
+
+  } catch (err: any) {
+    console.error('Unexpected API error:', err);
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+  }
+}
