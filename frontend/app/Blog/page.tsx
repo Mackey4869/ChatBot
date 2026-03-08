@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import MobileLayout from "@/components/layout/mobile-layout";
 import { Calendar, Tag, Plus, Edit, X, Save, Trash2, Loader2 } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 
 // --- 型定義 ---
 
@@ -23,58 +24,23 @@ type Blog = {
   tags: string[];
 };
 
-// --- 初期データ ---
-
+// --- カテゴリ定義 ---
 const CATEGORIES: BlogCategory[] = [
   { id: 1, name: "研究室" },
   { id: 2, name: "技術" },
   { id: 3, name: "個人" },
 ];
 
-const INITIAL_BLOGS: Blog[] = [
-  {
-    id: 1,
-    author_id: "417a2823-f2bf-484b-8361-0131d8b019b0",
-    category_id: 1,
-    title: "研究室の新メンバー紹介",
-    content: "今年度から研究室に加わった新メンバーを紹介します。",
-    is_published: true,
-    created_at: "2026-02-25",
-    updated_at: "2026-02-25",
-    tags: ["研究室", "メンバー"],
-  },
-  {
-    id: 2,
-    author_id: "user_01",
-    category_id: 2,
-    title: "機械学習モデルの最適化手法",
-    content: "深層学習モデルの学習効率を向上させる手法について解説します。",
-    is_published: true,
-    created_at: "2026-02-20",
-    updated_at: "2026-02-20",
-    tags: ["機械学習", "最適化"],
-  },
-  {
-    id: 3,
-    author_id: "user_01",
-    category_id: 3,
-    title: "学会参加報告",
-    content: "先日参加した国際学会での発表内容と所感をまとめました。",
-    is_published: true,
-    created_at: "2026-02-15",
-    updated_at: "2026-02-15",
-    tags: ["学会", "発表"],
-  },
-];
-
 export default function BlogPage() {
-  const [blogs, setBlogs] = useState<Blog[]>(INITIAL_BLOGS);
+  const { user } = useAuth();
+  const [blogs, setBlogs] = useState<Blog[]>([]);
   const [activeTab, setActiveTab] = useState<number | "ALL">("ALL");
+  const [isLoading, setIsLoading] = useState(true);
 
   // モーダル関連のState
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false); // ★ ローディング状態追加
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // フォームデータ
   const [formData, setFormData] = useState<{
@@ -90,6 +56,25 @@ export default function BlogPage() {
     tags: "",
     category_id: 1,
   });
+
+  // --- データ取得 ---
+  const fetchBlogs = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/blogs");
+      if (!response.ok) throw new Error("Failed to fetch blogs");
+      const result = await response.json();
+      setBlogs(result.data || []);
+    } catch (error) {
+      console.error("Fetch error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBlogs();
+  }, [fetchBlogs]);
 
   // --- ヘルパー関数 ---
   const getCategory = (id: number) => CATEGORIES.find((c) => c.id === id);
@@ -116,6 +101,10 @@ export default function BlogPage() {
   // --- ハンドラ ---
 
   const handleOpenCreate = () => {
+    if (!user) {
+      alert("ブログを投稿するにはログインが必要です");
+      return;
+    }
     setEditingId(null);
     setFormData({
       title: "",
@@ -131,111 +120,73 @@ export default function BlogPage() {
     setEditingId(blog.id);
     setFormData({
       title: blog.title,
-      created_at: blog.created_at,
+      created_at: blog.created_at.split('T')[0],
       content: blog.content,
-      tags: blog.tags.join(", "),
+      tags: blog.tags ? blog.tags.join(", ") : "",
       category_id: blog.category_id,
     });
     setIsModalOpen(true);
   };
 
-  // ★ APIを使用した保存処理 ★
   const handleSave = async () => {
-    // バリデーション
+    if (!user) {
+      alert("ログインセッションが切れました");
+      return;
+    }
+
     if (!formData.title || !formData.content) {
       alert("タイトルと内容は必須です");
       return;
     }
 
-    setIsSubmitting(true); // 送信開始
+    setIsSubmitting(true);
 
     try {
-      // 共通のデータオブジェクト作成
       const postData = {
         title: formData.title,
         content: formData.content,
         category_id: Number(formData.category_id),
-        author_id: "417a2823-f2bf-484b-8361-0131d8b019b0", // ※認証機能実装後は動的に取得する必要があります
+        author_id: user.id,
         tags: formData.tags.split(",").map((t) => t.trim()).filter((t) => t !== ""),
-        created_at: formData.created_at, // API側では自動設定されることが多いですが、ここでは渡しています
       };
 
-      if (editingId) {
-        // --- 編集モード (DB更新APIを呼び出し) ---
-        const response = await fetch('/api/ingest', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id: editingId,
-            ...postData,
-          }),
-        });
+      const endpoint = "/api/ingest";
+      const method = editingId ? "PUT" : "POST";
+      const body = editingId ? { id: editingId, ...postData } : postData;
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "更新に失敗しました");
-        }
+      const response = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-        const result = await response.json();
-        
-        const updatedBlog: Blog = {
-          ...blogs.find(b => b.id === editingId)!,
-          ...postData,
-          updated_at: new Date().toISOString().split("T")[0],
-          is_published: true, // 型合わせ
-        };
-        
-        setBlogs(blogs.map((b) => (b.id === editingId ? updatedBlog : b)));
-        alert("ブログ記事を更新しました");
-
-      } else {
-        // --- 新規作成モード (APIコール) ---
-        
-        const response = await fetch('/api/ingest', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(postData),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "保存に失敗しました");
-        }
-
-        const result = await response.json();
-        
-        // 成功したらローカルのリストも更新（楽観的UI更新）
-        // ※実際はサーバーから返ってきたIDやデータを使うのがベター
-        const newBlog: Blog = {
-          id: result.blogId || Math.max(...blogs.map((b) => b.id), 0) + 1,
-          ...postData,
-          is_published: true,
-          updated_at: postData.created_at,
-        };
-
-        setBlogs([newBlog, ...blogs]);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "保存に失敗しました");
       }
 
-      // 成功時のみモーダルを閉じる
+      await fetchBlogs(); // リストを再取得
       setIsModalOpen(false);
+      alert(editingId ? "更新しました" : "作成しました");
 
     } catch (error: any) {
       console.error("Save Error:", error);
       alert(`エラーが発生しました: ${error.message}`);
     } finally {
-      setIsSubmitting(false); // 送信終了
+      setIsSubmitting(false);
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (editingId && confirm("本当に削除しますか？")) {
-      // TODO: 削除APIがあればここで呼ぶ
-      setBlogs(blogs.filter((b) => b.id !== editingId));
-      setIsModalOpen(false);
+      setIsSubmitting(true);
+      try {
+        // 現在、blogs APIにDELETEがないため、簡易的な実装またはAPI追加が必要
+        // 今回はUIからの削除のみを想定するか、必要に応じてAPIを呼び出す
+        alert("削除機能はAPI未実装です");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -270,7 +221,11 @@ export default function BlogPage() {
 
         {/* 記事リスト */}
         <div className="space-y-4">
-          {filteredBlogs.length === 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="animate-spin text-blue-600" size={32} />
+            </div>
+          ) : filteredBlogs.length === 0 ? (
             <p className="text-center text-gray-400 py-10">記事がありません</p>
           ) : (
             filteredBlogs.map((blog) => (
@@ -279,23 +234,25 @@ export default function BlogPage() {
                   {getCategory(blog.category_id)?.name}
                 </span>
 
-                <button 
-                  onClick={() => handleOpenEdit(blog)}
-                  className="absolute top-4 right-20 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                >
-                  <Edit size={16} />
-                </button>
+                {user && user.id === blog.author_id && (
+                  <button 
+                    onClick={() => handleOpenEdit(blog)}
+                    className="absolute top-4 right-20 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                  >
+                    <Edit size={16} />
+                  </button>
+                )}
 
                 <h2 className="text-lg font-bold pr-24 mb-2 line-clamp-2">{blog.title}</h2>
                 <div className="flex items-center text-gray-400 text-sm mb-3">
                   <Calendar size={14} className="mr-1" />
-                  {blog.created_at}
+                  {new Date(blog.created_at).toLocaleDateString()}
                 </div>
                 <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-3">
                   {blog.content}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {blog.tags.map((tag, idx) => (
+                  {blog.tags && blog.tags.map((tag, idx) => (
                     <span key={idx} className="flex items-center bg-gray-100 text-gray-500 px-2 py-1 rounded text-xs">
                       <Tag size={12} className="mr-1" />
                       {tag}
