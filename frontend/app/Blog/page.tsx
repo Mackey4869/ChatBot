@@ -32,10 +32,11 @@ const CATEGORIES: BlogCategory[] = [
 ];
 
 export default function BlogPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [activeTab, setActiveTab] = useState<number | "ALL">("ALL");
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // モーダル関連のState
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -72,9 +73,30 @@ export default function BlogPage() {
     }
   }, []);
 
+  const fetchAdminStatus = useCallback(async () => {
+    if (!session?.access_token) {
+      setIsAdmin(false);
+      return;
+    }
+    try {
+      const response = await fetch("/api/admin", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      if (response.ok) {
+        const result = await response.json();
+        setIsAdmin(result.role === "admin");
+      }
+    } catch (error) {
+      console.error("Fetch admin status error:", error);
+    }
+  }, [session]);
+
   useEffect(() => {
     fetchBlogs();
-  }, [fetchBlogs]);
+    fetchAdminStatus();
+  }, [fetchBlogs, fetchAdminStatus]);
 
   // --- ヘルパー関数 ---
   const getCategory = (id: number) => CATEGORIES.find((c) => c.id === id);
@@ -178,12 +200,29 @@ export default function BlogPage() {
   };
 
   const handleDelete = async () => {
-    if (editingId && confirm("本当に削除しますか？")) {
+    if (!editingId || !session?.access_token) return;
+
+    if (confirm("本当に削除しますか？")) {
       setIsSubmitting(true);
       try {
-        // 現在、blogs APIにDELETEがないため、簡易的な実装またはAPI追加が必要
-        // 今回はUIからの削除のみを想定するか、必要に応じてAPIを呼び出す
-        alert("削除機能はAPI未実装です");
+        const response = await fetch(`/api/blogs?id=${editingId}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "削除に失敗しました");
+        }
+
+        await fetchBlogs(); // リストを再取得
+        setIsModalOpen(false);
+        alert("削除しました");
+      } catch (error: any) {
+        console.error("Delete Error:", error);
+        alert(`エラーが発生しました: ${error.message}`);
       } finally {
         setIsSubmitting(false);
       }
@@ -234,7 +273,7 @@ export default function BlogPage() {
                   {getCategory(blog.category_id)?.name}
                 </span>
 
-                {user && user.id === blog.author_id && (
+                {user && (user.id === blog.author_id || isAdmin) && (
                   <button 
                     onClick={() => handleOpenEdit(blog)}
                     className="absolute top-4 right-20 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
@@ -354,7 +393,7 @@ export default function BlogPage() {
               </div>
             </div>
             <div className="p-4 border-t bg-gray-50 flex gap-3">
-              {editingId && (
+              {editingId && isAdmin && (
                 <button
                   onClick={handleDelete}
                   className="p-3 text-red-500 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-200 transition-colors"
