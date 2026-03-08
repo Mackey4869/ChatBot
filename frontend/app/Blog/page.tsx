@@ -161,8 +161,24 @@ export default function BlogPage() {
       };
 
       if (editingId) {
-        // --- 編集モード (今回はAPIが新規作成用のみのため、ローカル更新のみ行います) ---
-        // TODO: 更新用のAPIエンドポイント (PUT /api/blogs/[id]) があればここでfetchする
+        // --- 編集モード (DB更新APIを呼び出し) ---
+        const response = await fetch('/api/ingest', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: editingId,
+            ...postData,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "更新に失敗しました");
+        }
+
+        const result = await response.json();
         
         const updatedBlog: Blog = {
           ...blogs.find(b => b.id === editingId)!,
@@ -172,7 +188,7 @@ export default function BlogPage() {
         };
         
         setBlogs(blogs.map((b) => (b.id === editingId ? updatedBlog : b)));
-        alert("編集内容はローカルに保存されました（DB更新APIは未実装）");
+        alert("ブログ記事を更新しました");
 
       } else {
         // --- 新規作成モード (APIコール) ---
