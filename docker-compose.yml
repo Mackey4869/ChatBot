@@ -12,6 +12,7 @@ services:
     volumes:
       - ./frontend:/usr/src/frontend
       - node_modules:/usr/src/frontend/node_modules # node_modules
+      - ./.env:/run/secrets/root_env:ro
     tty: true
     environment:
       - WATCHPACK_POLLING=true
