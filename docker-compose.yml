@@ -4,11 +4,15 @@ services:
     build: 
       context: '.'
       dockerfile: ./container/Dockerfile.frontend
+    # frontend はフロント専用の .env を参照する（ルートの .env はサーバ用に残す）
+    env_file:
+      - ./frontend/.env
     ports:
-      - 3000:3000
+      - "${HOST_PORT:-3000}:3000"
     volumes:
       - ./frontend:/usr/src/frontend
       - node_modules:/usr/src/frontend/node_modules # node_modules
+      - ./.env:/run/secrets/root_env:ro
     tty: true
     environment:
       - WATCHPACK_POLLING=true
