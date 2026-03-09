@@ -61,7 +61,7 @@ export default function LoginPage() {
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-[#1e3a8a]">研究室スケジュール管理</h1>
+        <h1 className="text-2xl font-bold text-[#1e3a8a]">N-Research</h1>
         <p className="text-gray-500 text-sm mt-2">IDとパスワードを入力してログイン</p>
       </div>
 

@@ -8,7 +8,7 @@ import { createClient } from "../../lib/supabase";
 
 export default function MobileLayout({
   children,
-  title = "研究室スケジュール管理",
+  title = "N-Research",
 }: {
   children: React.ReactNode;
   title?: string;

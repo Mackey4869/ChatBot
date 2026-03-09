@@ -234,7 +234,7 @@ export default function BlogPage() {
     : blogs.filter((b) => b.category_id === activeTab);
 
   return (
-    <MobileLayout title="研究室スケジュール管理">
+    <MobileLayout title="N-Research">
       <div className="p-4 space-y-6 pb-24">
         <h1 className="text-2xl font-bold pt-2">ブログ記事</h1>
 
