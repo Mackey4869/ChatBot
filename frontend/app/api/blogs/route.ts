@@ -41,7 +41,7 @@ export async function GET(req: Request) {
       }
     }
 
-    let query = supabase
+    let query: any = supabase
       .from('blogs')
       .select(`
         *,
