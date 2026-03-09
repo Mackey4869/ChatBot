@@ -88,7 +88,7 @@ export default function HomePage() {
   );
 
   return (
-    <MobileLayout title="研究室スケジュール管理">
+    <MobileLayout title="N-Research">
       <div className="p-4 space-y-4">
         
         {/* コンセプトメッセージ */}

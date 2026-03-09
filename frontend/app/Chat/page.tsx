@@ -105,7 +105,7 @@ export default function ChatPage() {
   };
 
   return (
-    <MobileLayout title="研究室スケジュール管理">
+    <MobileLayout title="N-Research">
       <div className="flex flex-col h-[calc(100vh-140px)]">
         
         <div className="p-4 bg-white shadow-sm z-10">
